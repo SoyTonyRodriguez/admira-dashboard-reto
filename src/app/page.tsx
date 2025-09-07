@@ -1,6 +1,7 @@
 
-'use client';
+'use client'; // Enable client-side rendering for this page
 
+// React hooks and recharts components for data visualization
 import { useEffect, useMemo, useState } from 'react';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -9,11 +10,14 @@ import {
 import { Card, Spinner, useTopN } from '@/app/components/ui';
 import { RatesTS, toSeries, movingAvg, normalize100, pctChange, upDownShare, groupBy } from '@/app/lib/transform';
 
+// List of all supported currency symbols
 const ALL = ['MXN','EUR','JPY','GBP','CAD','BRL','CLP','ARS','COP'] as const;
 
+// Possible states for data fetching
 type FetchState = 'idle' | 'loading' | 'success' | 'error' | 'empty';
 
 export default function Page() {
+    // State hooks for filters, selection, data, and UI state
     const [start, setStart] = useState<string>(() => new Date(Date.now() - 1000*60*60*24*60).toISOString().slice(0,10));
     const [end, setEnd] = useState<string>(() => new Date().toISOString().slice(0,10));
     const [sel, setSel] = useState<string[]>(['MXN','EUR','JPY','GBP']);
@@ -24,6 +28,7 @@ export default function Page() {
     const [period, setPeriod] = useState<'day'|'week'|'month'>('day');
 
     const fetchData = async () => {
+    // Fetch timeseries data from API based on filters
         setState('loading');
         setError('');
         try {
@@ -41,16 +46,21 @@ export default function Page() {
     };
 
     useEffect(() => { fetchData(); /* eslint-disable-next-line */ }, []);
+    // Fetch data on mount
 
     const baseSeries = useMemo(() => data ? toSeries(data, symbol) : [], [data, symbol]);
+    // Memoized base series for selected symbol
     const seriesMA7 = useMemo(() => movingAvg(baseSeries, 7), [baseSeries]);
+    // Memoized 7-day moving average
     const aggSeries = useMemo(() => {
+    // Memoized aggregation by day/week/month
         if (!baseSeries.length) return baseSeries;
         if (period === 'day') return baseSeries;
         return groupBy(baseSeries, period);
     }, [baseSeries, period]);
 
     const normalizedMulti = useMemo(() => {
+    // Memoized normalized index (base 100) for all selected currencies
         if (!data) return [] as Array<{ date: string } & Record<string, number>>;
         const dates = Object.keys(data).sort();
         return dates.map(d => {
@@ -66,6 +76,7 @@ export default function Page() {
     }, [data, sel]);
 
     const topList = useMemo(() => {
+    // Memoized top-N list by percent change
         if (!data) return [] as { symbol: string; change: number }[];
         return sel.map(s => ({ symbol: s, change: pctChange(toSeries(data, s)) }))
         .sort((a,b) => Math.abs(b.change) - Math.abs(a.change))
@@ -73,11 +84,13 @@ export default function Page() {
     }, [data, sel]);
 
     const ud = useMemo(() => upDownShare(baseSeries), [baseSeries]);
+    // Memoized up/down/flat share for pie chart
 
     const topN = useTopN(topList, 6, x => Math.abs(x.change));
+    // Memoized top-N selection for bar chart
 
     return (
-        <div className="space-y-6">
+    <div className="space-y-6">
         <section className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <Card title="Filtros" actions={
             <button onClick={fetchData} className="rounded-xl px-3 py-1.5 text-sm bg-zinc-900 text-white dark:bg-white dark:text-black">Aplicar</button>
@@ -120,6 +133,7 @@ export default function Page() {
             </Card>
 
             <Card title={`Tendencia ${symbol} (USD→${symbol}) + MA7`}>
+            {/* Line chart for selected symbol and moving average */}
             {state==='loading' && <Spinner/>}
             {state==='error' && <p className="text-sm text-red-600">Error: {error}</p>}
             {state==='empty' && <p className="text-sm">Sin datos en el rango seleccionado.</p>}
@@ -141,6 +155,7 @@ export default function Page() {
             </Card>
 
             <Card title="Top‑N % cambio (selección)">
+            {/* Bar chart for top-N percent change among selected currencies */}
             {state!=='success' ? (state==='loading'?<Spinner/>:<p className="text-sm opacity-80">{state==='error'?`Error: ${error}`:'Sin datos'}</p>) : (
                 <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
@@ -158,7 +173,9 @@ export default function Page() {
         </section>
 
         <section className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Multi-currency index and up/down/flat pie chart section */}
             <Card title="Índice = 100 (multi‑divisa)">
+            {/* Area chart for normalized index across selected currencies */}
             {state==='success' ? (
                 <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
@@ -177,6 +194,7 @@ export default function Page() {
             </Card>
 
             <Card title={`Días ↑ / ↓ / = en ${symbol}`}>
+            {/* Pie chart for up/down/flat days in selected symbol */}
             {state==='success' ? (
                 <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
@@ -194,6 +212,7 @@ export default function Page() {
         </section>
 
         <section>
+            {/* Daily detail table for selected symbol */}
             <Card title={`Detalle diario — ${symbol}`}>
             {state==='success' ? (
                 <div className="max-h-80 overflow-auto">
