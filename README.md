@@ -12,6 +12,11 @@ Construir en 3 horas un mini-dashboard con React + Next.js que:
 
 ---
 
+
+### GIF de funcionamiento
+
+![test](./gif%20test.gif)
+
 ##  Stack
 	•	Frontend: Next.js 13 (App Router) + React + TailwindCSS + TypeScript
 	•	Visualizaciones: Recharts
